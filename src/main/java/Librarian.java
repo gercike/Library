@@ -1,4 +1,7 @@
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -18,7 +21,7 @@ public class Librarian {
         String bookRealese = sc.nextLine();
         System.out.println("Add meg a könyv állapotát!(pl. GOOD)");
         String bookCondition = sc.nextLine();
-        PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO `library`.`book` (`title`, `release`, `condition`) VALUES (?,?, ?)");
+        PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO library.book (title, release, condition) VALUES (?, ?, ?);");
         preparedStatement.setString(1, bookTitle);
         preparedStatement.setString(2, bookRealese);
         preparedStatement.setString(3, bookCondition);
@@ -45,10 +48,10 @@ public class Librarian {
 
         System.out.println("Most a rendszer összekapcsolja az író nevét a mű címével!");
         preparedStatement = connection.prepareStatement("INSERT INTO `library`.`book_has_author`" +
-                " (`book_bookID`, `author_authorID`) " +
-                "VALUES ((SELECT max(`bookID`) FROM `library`.`book`),'6' );\n");
-//        SELECT max(`library`.`bookID`) FROM `library`.`book` where `title`=booktitle
-//        preparedStatement.setString(1, bookTitle);
+                " (`book_bookID`, `author_authorID`) VALUES ((SELECT max(`bookID`) FROM `library`.`book`), (SELECT authorID FROM library.author where name = ?));\n");
+        preparedStatement.setString(1, authorName);
+
+//        SELECT max(`bookID`) FROM `library`.`book`
 //        preparedStatement.setString(2, authorID);
 
 
@@ -57,7 +60,7 @@ public class Librarian {
         connection.close();
 
 //        kiíratás teszteléshez
-
+//
 //        Librarian me2 = new Librarian();
 //        Connection connection2 = me2.getConnection();
 //        PreparedStatement preparedStatement2 = connection2.prepareStatement("select title from book");
@@ -113,10 +116,10 @@ public class Librarian {
 //    }
 
     public Connection getConnection() throws SQLException {
-        String url = "jdbc:mysql://localhost:3306/library";
+        String url = "jdbc:mysql://localhost:3306/library?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
         Properties properties = new Properties();
         properties.put("user", "root");
-        properties.put("password", "password");
+        properties.put("password", "root");
         Connection connection =
                 DriverManager.getConnection(url, properties);
         return connection;
