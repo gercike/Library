@@ -1,7 +1,4 @@
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -48,7 +45,8 @@ public class Librarian {
 
         System.out.println("Most a rendszer összekapcsolja az író nevét a mű címével!");
         preparedStatement = connection.prepareStatement("INSERT INTO `library`.`book_has_author`" +
-                " (`book_bookID`, `author_authorID`) VALUES ('15', '5');\n");
+                " (`book_bookID`, `author_authorID`) " +
+                "VALUES ((SELECT max(`bookID`) FROM `library`.`book`),'6' );\n");
 //        SELECT max(`library`.`bookID`) FROM `library`.`book` where `title`=booktitle
 //        preparedStatement.setString(1, bookTitle);
 //        preparedStatement.setString(2, authorID);
@@ -72,7 +70,17 @@ public class Librarian {
 
     }
 
-    void discardBook() {
+    void discardBook() throws SQLException {
+        System.out.println("Add meg a könyv Id számát,amit selejtezni szeretnél !");
+        Librarian me2 = new Librarian();
+        Connection connection2 = me2.getConnection();
+        PreparedStatement preparedStatement2 = connection2.prepareStatement("select title from book");
+        ResultSet resultSet2 = preparedStatement2.executeQuery();
+       while (resultSet2.next()){
+             String title =resultSet2.getString("title");
+           System.out.println(title);
+       }
+        connection2.close();
 
     }
 
