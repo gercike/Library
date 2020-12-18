@@ -121,4 +121,8 @@ public class Library {
             System.out.println("A(z) " + name + " nevű felhasználó " + startDate + "-n kivette, majd " + endDate + "-n visszahozta a " + title + " című könyvet.");
         }
     }
+
+    void closeMySQLConnection () throws SQLException {
+        mySqlConnection.close();
+    }
 }

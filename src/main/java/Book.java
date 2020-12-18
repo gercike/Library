@@ -1,3 +1,5 @@
+import java.sql.SQLException;
+
 public class Book {
     String title;
     int release; // Máté, ez az adatbázisban eredetileg LocalDate és releaseDate a neve, írd át!
