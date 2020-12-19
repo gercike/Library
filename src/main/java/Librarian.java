@@ -4,9 +4,10 @@ import java.util.Scanner;
 
 public class Librarian {
     public static void main(String[] args) throws SQLException {
-        addBookToLibrary();
+//        addBookToLibrary();
 //        createNewUser();
 //        discardBook();
+        rentABook();
     }
 
     public static void addBookToLibrary() throws SQLException {
@@ -56,15 +57,15 @@ public class Librarian {
 
         System.out.println("Add meg a könyv műfajait, vesszővel elválasztva!");
         String bookThemes = sc.nextLine().toLowerCase();
-        String [] parts = bookThemes.split(",");
-        for (int i = 0; i < parts.length ; i++) {
+        String[] parts = bookThemes.split(",");
+        for (int i = 0; i < parts.length; i++) {
             String oneTheme = parts[i].trim();
             preparedStatement = connection.prepareStatement("INSERT INTO `library`.`theme` (`theme`) \n" +
                     "SELECT * FROM (SELECT ?) AS tmp\n" +
                     "WHERE NOT EXISTS (\n" +
                     "    SELECT theme FROM theme WHERE theme = ?\n" +
                     ") LIMIT 1;");
-            preparedStatement.setString(1,oneTheme );
+            preparedStatement.setString(1, oneTheme);
             rows = preparedStatement.executeUpdate();
             System.out.println("kész ");
 
@@ -131,10 +132,52 @@ public class Librarian {
     }
 
     //
-//    void rentABook() {
-//
-//    }
-//
+    public static void rentABook() throws SQLException {
+        Librarian me = new Librarian();
+        Connection connection = me.getConnection();
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Add meg a nevedet!");
+        String userName = sc.nextLine().toLowerCase();
+        System.out.println("Add meg a könyv címét!");
+        String bookTitle = sc.nextLine();
+        System.out.println("Add meg,hogyhányadik kiadás!");
+        int release = Integer.parseInt(sc.nextLine());
+        System.out.println("Add meg a mai dátumot (pl. 2000-02-22)");
+        String startingLocalDate = sc.nextLine();
+
+        PreparedStatement allowToSetForeignKeys = connection.prepareStatement("SET GLOBAL FOREIGN_KEY_CHECKS=0;");
+        int rows1 = allowToSetForeignKeys.executeUpdate();
+// fontos, hogy egy user csak egyszer szerepeljen az adatbázisban
+        PreparedStatement getUserIdFromName = connection.prepareStatement("select userId from user where name= ? ");
+        getUserIdFromName.setString(1, userName);
+
+        ResultSet resultSet = getUserIdFromName.executeQuery();
+        resultSet.next();
+        int userId = resultSet.getInt("userId");
+        System.out.println(userId + " " + userName);
+
+
+        PreparedStatement getBookIdFromTitle = connection.prepareStatement("select bookID from book where book.title= ? and book.release=? limit 1");
+        getBookIdFromTitle.setString(1, bookTitle);
+        getBookIdFromTitle.setInt(2, release);
+        ResultSet resultSet2 = getBookIdFromTitle.executeQuery();
+        resultSet2.next();
+        int bookId = resultSet2.getInt("bookID");
+        System.out.println(bookId + " " + bookTitle);
+
+        PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO `library`.`rental` (`startdate`," +
+                " `user_userID`, `book_bookID`) VALUES (?, ?, ?);");
+        preparedStatement.setString(1, startingLocalDate);
+        preparedStatement.setInt(2, userId);
+        preparedStatement.setInt(3, bookId);
+        int rows = preparedStatement.executeUpdate();
+        System.out.println("kész ");
+
+        PreparedStatement allowToSetForeignKeys2 = connection.prepareStatement("SET GLOBAL FOREIGN_KEY_CHECKS=1;");
+        int rows2 = allowToSetForeignKeys2.executeUpdate();
+    }
+
+    //
 //    void takeBackABook() {
 //
 //    }
@@ -144,7 +187,7 @@ public class Librarian {
         Connection connection = me.getConnection();
         Scanner sc = new Scanner(System.in);
         System.out.println("Add meg a teljes nevedet!");
-        String fullName = sc.nextLine();
+        String fullName = sc.nextLine().toLowerCase();
         PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO `library`.`user` (`name`) VALUES (?)");
         preparedStatement.setString(1, fullName);
 
