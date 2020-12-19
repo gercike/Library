@@ -1,7 +1,4 @@
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -21,7 +18,8 @@ public class Librarian {
         String bookRealese = sc.nextLine();
         System.out.println("Add meg a könyv állapotát!(pl. GOOD)");
         String bookCondition = sc.nextLine();
-        PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO library.book (title, release, condition) VALUES (?, ?, ?);");
+        PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO `library`.`book` (`title`," +
+                " `release`, `condition`) VALUES (?, ?, ?);");
         preparedStatement.setString(1, bookTitle);
         preparedStatement.setString(2, bookRealese);
         preparedStatement.setString(3, bookCondition);
@@ -73,17 +71,41 @@ public class Librarian {
 
     }
 
-    void discardBook() throws SQLException {
+    public static void discardBook() throws SQLException {
         System.out.println("Add meg a könyv Id számát,amit selejtezni szeretnél !");
-        Librarian me2 = new Librarian();
-        Connection connection2 = me2.getConnection();
-        PreparedStatement preparedStatement2 = connection2.prepareStatement("select title from book");
-        ResultSet resultSet2 = preparedStatement2.executeQuery();
-       while (resultSet2.next()){
-             String title =resultSet2.getString("title");
-           System.out.println(title);
-       }
-        connection2.close();
+        Scanner sc = new Scanner(System.in);
+        int bookId = Integer.parseInt(sc.nextLine());
+        Librarian me = new Librarian();
+        Connection connection = me.getConnection();
+        PreparedStatement preparedStatement = connection.prepareStatement("select title,book.release,book.condition from book where bookID=? ");
+        preparedStatement.setInt(1, bookId);
+        ResultSet resultSet = preparedStatement.executeQuery();
+        while (resultSet.next()) {
+            String title = resultSet.getString("title");
+            String release = resultSet.getString("book.release");
+            String condition = resultSet.getString("book.condition");
+            System.out.println(title + "" + release + "" + condition);
+        }
+        System.out.println("Selejtezni szeretnéd ezt a könyvet? (i/n)");
+        sc = new Scanner(System.in);
+        String yesOrNo = sc.nextLine();
+        if (yesOrNo.equals("i")) {
+//            SET FOREIGN_KEY_CHECKS=0; -- to disable them
+//            SET FOREIGN_KEY_CHECKS=1; -- to re-enable them
+
+            preparedStatement = connection.prepareStatement(" UPDATE `book` \n" +
+                    "SET \n" +
+                    "    `condition` = 'DISCARDED'\n" +
+                    "WHERE\n" +
+                    "    `bookID` = ?;");
+//                     "REPLACE INTO `book`(`bookID`,`condition` )\n" +
+//                     "            VALUES(2,'DISCARDED');\n" +
+//                    "");
+            preparedStatement.setInt(1, bookId);
+            int row = preparedStatement.executeUpdate();
+        }
+        connection.close();
+
 
     }
 
@@ -116,10 +138,10 @@ public class Librarian {
 //    }
 
     public Connection getConnection() throws SQLException {
-        String url = "jdbc:mysql://localhost:3306/library?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
+        String url = "jdbc:mysql://localhost:3306/library";
         Properties properties = new Properties();
         properties.put("user", "root");
-        properties.put("password", "root");
+        properties.put("password", "password");
         Connection connection =
                 DriverManager.getConnection(url, properties);
         return connection;
