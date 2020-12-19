@@ -7,7 +7,8 @@ public class Librarian {
 //        addBookToLibrary();
 //        createNewUser();
 //        discardBook();
-        rentABook();
+//        rentABook();
+        takeBackABook();
     }
 
     public static void addBookToLibrary() throws SQLException {
@@ -69,7 +70,7 @@ public class Librarian {
             rows = preparedStatement.executeUpdate();
             System.out.println("kész ");
 
-            System.out.println("Most a rendszer összekapcsolja az író nevét a mű címével!");
+            System.out.println("Most a rendszer összekapcsolja az adott műfajokat a mű címével!");
             preparedStatement = connection.prepareStatement("INSERT INTO `library`.`book_has_theme`" +
                     " (`book_bookID`, `theme_themeID`) VALUES ((SELECT max(`bookID`) FROM `library`.`book`), (SELECT themeID FROM library.theme where theme = ?));\n");
             preparedStatement.setString(1, oneTheme);
@@ -109,6 +110,7 @@ public class Librarian {
             System.out.println(title + "" + release + "" + condition);
         }
         System.out.println("Selejtezni szeretnéd ezt a könyvet? (i/n)");
+//        a nem válasz nincs lekezelve
         sc = new Scanner(System.in);
         String yesOrNo = sc.nextLine();
         if (yesOrNo.equals("i")) {
@@ -138,10 +140,14 @@ public class Librarian {
         Scanner sc = new Scanner(System.in);
         System.out.println("Add meg a nevedet!");
         String userName = sc.nextLine().toLowerCase();
+        System.out.println("Add meg a könyv kódját!");
+        int realBookID = Integer.parseInt(sc.nextLine());
+// ez itt nem fontos, csak ellenőrzi, hogy jó könyv van- e a kódhoz csatolva
         System.out.println("Add meg a könyv címét!");
-        String bookTitle = sc.nextLine();
-        System.out.println("Add meg,hogyhányadik kiadás!");
+        String bookTitle = sc.nextLine().toLowerCase();
+        System.out.println("Add meg,hogy hányadik kiadás!");
         int release = Integer.parseInt(sc.nextLine());
+//        idáig
         System.out.println("Add meg a mai dátumot (pl. 2000-02-22)");
         String startingLocalDate = sc.nextLine();
 
@@ -157,19 +163,22 @@ public class Librarian {
         System.out.println(userId + " " + userName);
 
 
-        PreparedStatement getBookIdFromTitle = connection.prepareStatement("select bookID from book where book.title= ? and book.release=? limit 1");
+        PreparedStatement getBookIdFromTitle = connection.prepareStatement("select bookID from book where book.title= ? and book.release=? ");
         getBookIdFromTitle.setString(1, bookTitle);
         getBookIdFromTitle.setInt(2, release);
         ResultSet resultSet2 = getBookIdFromTitle.executeQuery();
-        resultSet2.next();
-        int bookId = resultSet2.getInt("bookID");
-        System.out.println(bookId + " " + bookTitle);
-
+//        ez is csak ellenőrzés
+        while (
+                resultSet2.next()) {
+            int bookId = resultSet2.getInt("bookID");
+            System.out.println(bookId + " " + bookTitle);
+        }
+//        idáig
         PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO `library`.`rental` (`startdate`," +
                 " `user_userID`, `book_bookID`) VALUES (?, ?, ?);");
         preparedStatement.setString(1, startingLocalDate);
         preparedStatement.setInt(2, userId);
-        preparedStatement.setInt(3, bookId);
+        preparedStatement.setInt(3, realBookID);
         int rows = preparedStatement.executeUpdate();
         System.out.println("kész ");
 
@@ -177,16 +186,77 @@ public class Librarian {
         int rows2 = allowToSetForeignKeys2.executeUpdate();
     }
 
+//  :(  engedélyezi , hogy ugyanazt az id-jű könyvet kivegyük,mielőtt vissza lenne hozva :(
+
     //
-//    void takeBackABook() {
-//
-//    }
-//
+    public static void takeBackABook() throws SQLException {
+        Librarian me = new Librarian();
+        Connection connection = me.getConnection();
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Add meg a kölcsönző teljes nevét !");
+        String userName = sc.nextLine().toLowerCase();
+        System.out.println("Add meg a könyv kódját!");
+        int realBookID = Integer.parseInt(sc.nextLine());
+//    szintén csak ellenőrzésend
+        System.out.println("Add meg a könyv címét  !");
+        String bookTitle = sc.nextLine().toLowerCase();
+        System.out.println("Add meg,hogy hányadik kiadás!");
+        int release = Integer.parseInt(sc.nextLine());
+//       idáig
+
+        PreparedStatement allowToSetForeignKeys = connection.prepareStatement("SET GLOBAL FOREIGN_KEY_CHECKS=0;");
+        int rows1 = allowToSetForeignKeys.executeUpdate();
+
+        PreparedStatement getUserIdFromName = connection.prepareStatement("select userID from user where name= ? ");
+        getUserIdFromName.setString(1, userName);
+        ResultSet resultSet = getUserIdFromName.executeQuery();
+        resultSet.next();
+        int userId = resultSet.getInt("userID");
+        System.out.println(userId + " " + userName);
+
+        PreparedStatement getBookIdFromTitle = connection.prepareStatement("select bookID from book where book.title= ? and book.release=?");
+        getBookIdFromTitle.setString(1, bookTitle);
+        getBookIdFromTitle.setInt(2, release);
+        ResultSet resultSet2 = getBookIdFromTitle.executeQuery();
+        while (resultSet2.next()) {
+            int bookId = resultSet2.getInt("bookID");
+            System.out.println(bookId + " " + bookTitle);
+        }
+//        ez teszteli, hogy az enddate null
+        PreparedStatement endingDateTest = connection.prepareStatement("select idrental from rental where book_bookID=? and " +
+                "user_userID=? and enddate is null;  ");
+        getBookIdFromTitle.setInt(1, realBookID);
+        getBookIdFromTitle.setInt(2, userId);
+        ResultSet resultSet3 = getBookIdFromTitle.executeQuery();
+        while (resultSet3.next()) {
+            int idrental = resultSet3.getInt("idrental");
+            System.out.println(idrental + " " + bookTitle);
+        }
+        System.out.println("Eddig minden rendben? (i/n)");
+// a nem válasz nincs lekezelve itt s még egy helyen asszem
+
+        if (sc.nextLine().equals("i")) {
+            System.out.println("Add meg a mai dátumot!");
+            String endDateLocalDate = sc.nextLine();
+            PreparedStatement preparedStatement = connection.prepareStatement(" UPDATE `rental`" +
+                    " SET `endDate`=? WHERE `user_userID`=? " +
+                    "and `book_bookID`=? and `endDate` is null");
+            preparedStatement.setString(1, endDateLocalDate);
+            preparedStatement.setInt(2, userId);
+            preparedStatement.setInt(3, realBookID);
+            int rows = preparedStatement.executeUpdate();
+            System.out.println("kész ");
+
+            PreparedStatement allowToSetForeignKeys2 = connection.prepareStatement("SET GLOBAL FOREIGN_KEY_CHECKS=1;");
+            int rows2 = allowToSetForeignKeys2.executeUpdate();
+        }
+    }
+
     public static void createNewUser() throws SQLException {
         Librarian me = new Librarian();
         Connection connection = me.getConnection();
         Scanner sc = new Scanner(System.in);
-        System.out.println("Add meg a teljes nevedet!");
+        System.out.println("Add meg az új tag teljes nevét!");
         String fullName = sc.nextLine().toLowerCase();
         PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO `library`.`user` (`name`) VALUES (?)");
         preparedStatement.setString(1, fullName);
