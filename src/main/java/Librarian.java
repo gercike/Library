@@ -6,6 +6,7 @@ public class Librarian {
     public static void main(String[] args) throws SQLException {
         addBookToLibrary();
 //        createNewUser();
+//        discardBook();
     }
 
     public static void addBookToLibrary() throws SQLException {
@@ -48,13 +49,33 @@ public class Librarian {
         preparedStatement = connection.prepareStatement("INSERT INTO `library`.`book_has_author`" +
                 " (`book_bookID`, `author_authorID`) VALUES ((SELECT max(`bookID`) FROM `library`.`book`), (SELECT authorID FROM library.author where name = ?));\n");
         preparedStatement.setString(1, authorName);
-
 //        SELECT max(`bookID`) FROM `library`.`book`
 //        preparedStatement.setString(2, authorID);
-
-
         rows = preparedStatement.executeUpdate();
         System.out.println("kész ");
+
+        System.out.println("Add meg a könyv műfajait, vesszővel elválasztva!");
+        String bookThemes = sc.nextLine().toLowerCase();
+        String [] parts = bookThemes.split(",");
+        for (int i = 0; i < parts.length ; i++) {
+            String oneTheme = parts[i].trim();
+            preparedStatement = connection.prepareStatement("INSERT INTO `library`.`theme` (`theme`) \n" +
+                    "SELECT * FROM (SELECT ?) AS tmp\n" +
+                    "WHERE NOT EXISTS (\n" +
+                    "    SELECT theme FROM theme WHERE theme = ?\n" +
+                    ") LIMIT 1;");
+            preparedStatement.setString(1,oneTheme );
+            rows = preparedStatement.executeUpdate();
+            System.out.println("kész ");
+
+            System.out.println("Most a rendszer összekapcsolja az író nevét a mű címével!");
+            preparedStatement = connection.prepareStatement("INSERT INTO `library`.`book_has_theme`" +
+                    " (`book_bookID`, `theme_themeID`) VALUES ((SELECT max(`bookID`) FROM `library`.`book`), (SELECT themeID FROM library.theme where theme = ?));\n");
+            preparedStatement.setString(1, oneTheme);
+            rows = preparedStatement.executeUpdate();
+            System.out.println("kész ");
+
+        }
         connection.close();
 
 //        kiíratás teszteléshez
